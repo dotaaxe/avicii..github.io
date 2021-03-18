@@ -8,10 +8,12 @@
    * @constructor
    */
   var AboutCard = function() {
-    this.$openBtn = $('#sidebar, #header').find('a[href*="#about"]');
+    this.$openBtn = $("#sidebar, #header").find("a[href*='#about']");
     this.$closeBtn = $('#about-btn-close');
     this.$blog = $('#blog');
     this.$about = $('#about');
+    this.$searchTool = $('.search-tools-col');
+    this.$canvas = $('.anm-canvas');
     this.$aboutCard = $('#about-card');
   };
 
@@ -42,6 +44,8 @@
     play: function() {
       var self = this;
       // Fade out the blog
+      self.$searchTool.fadeOut();
+      self.$canvas.fadeOut();
       self.$blog.fadeOut();
       // Fade in the about card
       self.$about.fadeIn();
@@ -62,6 +66,8 @@
       self.liftAboutCard();
       // Fade in the blog after that the about card lifted up
       setTimeout(function() {
+        self.$searchTool.fadeIn();
+        self.$canvas.fadeIn();
         self.$blog.fadeIn();
       }, 500);
       // Fade out the about card after that the about card lifted up
@@ -459,6 +465,7 @@
    */
   var CodeBlockResizer = function(elem) {
     this.$codeBlocks = $(elem);
+    this.$sidebar = $('#sidebar');
   };
 
   CodeBlockResizer.prototype = {
@@ -468,11 +475,12 @@
      */
     run: function() {
       var self = this;
-      // resize all codeblocks
-      self.resize();
+      setTimeout(function() {
+        //self.resize();
+      }, 100);
       // resize codeblocks when window is resized
-      $(window).smartresize(function() {
-        self.resize();
+      $(window).resize(function() {
+        //self.resize();
       });
     },
 
@@ -483,15 +491,19 @@
     resize: function() {
       var self = this;
       self.$codeBlocks.each(function() {
-        var $gutter = $(this).find('.gutter');
-        var $code = $(this).find('.code');
-        // get padding of code div
-        var codePaddings = $code.width() - $code.innerWidth();
-        // code block div width with padding - gutter div with padding + code div padding
-        var width = $(this).outerWidth() - $gutter.outerWidth() + codePaddings;
-        // apply new width
-        $code.css('width', width);
-        $code.children('pre').css('width', width);
+        var code = $(this).find('td.code');
+        var table = $(this).find('table');
+        var windowWidth = $(window).width();
+        var gutter = table.find('.gutter');
+        var gutterWidth = gutter.outerWidth(); // always 15px;
+        var paddingLeft = parseInt(code.css('padding-left').substr(0, 2), 10);
+        var paddingRight = parseInt(code.css('padding-right').substr(0, 2), 10);
+
+        if (windowWidth < 768 || gutter.length <= 0) {
+          gutterWidth = 0;
+        }
+        var width = table.width() - gutterWidth - paddingRight - paddingLeft;
+        code.find('pre').css('width', width);
       });
     }
   };
@@ -505,7 +517,8 @@
     resizer.run();
   });
 })(jQuery);
-;(function($) {
+;/* eslint-disable no-unused-vars */
+(function($) {
   'use strict';
 
   // Run fancybox feature
@@ -516,11 +529,16 @@
      * @returns {void}
      */
     function fancyFox() {
-      var thumbs = false;
+      var arrows = true;
+      var thumbs = null;
 
       // disable navigation arrows and display thumbs on medium and large screens
       if ($(window).height() > 480) {
-        thumbs = true;
+        arrows = false;
+        thumbs = {
+          width: 70,
+          height: 70
+        };
       }
 
       $('.fancybox').fancybox({
@@ -533,7 +551,7 @@
           'close'
         ],
         thumbs: {
-          autoStart: thumbs,
+          autoStart: true,
           axis: 'x'
         }
       });
@@ -544,6 +562,205 @@
     $(window).smartresize(function() {
       fancyFox();
     });
+  });
+})(jQuery);
+;/* eslint-disable brace-style */
+(function($) {
+  'use strict';
+
+  /**
+   * fix table content
+   * https://github.com/jeremychurch/FixedContent.js
+   */
+
+  /**
+   * FixContent
+   * @constructor
+   */
+  var FixContent = function() {
+    this.$jsFixedContent = $('.toc.js-fixedContent');
+    this.lastScroll = 0;
+    this.contentOffset = 0;
+    this.tocMessage = $('.tableContent').data('message');
+    this.options = {
+      marginTop: 50,
+      minWidth: 768 + 160
+    };
+  };
+
+  FixContent.prototype = {
+    /**
+     * Run FixContent feature
+     * @return {void}
+     */
+    run: function() {
+      var self = this;
+      if (this.$jsFixedContent.length && this.tocMessage !== undefined) {
+        if ($(window).innerWidth() >= this.options.minWidth) {
+          $(window).scroll(function() {
+            self.fixedContent();
+            self.setContentPosition();
+          });
+        }
+      }
+    },
+
+    fixedContent: function() {
+      this.setContentPosition();
+    },
+
+    setContentPosition: function() {
+      var self = this;
+      if (self.contentOffset === 0) {
+        self.contentOffset = self.getContentOffset();
+      }
+      if ($(window).scrollTop() >= (self.contentOffset - this.options.marginTop)) {
+        this.$jsFixedContent.css({
+          position: 'fixed',
+          top: self.options.marginTop
+        });
+        if (this.lastScroll === 0) {
+          self.lastScroll = $(window).scrollTop();
+        }
+      } else if ($(window).scrollTop() <= self.lastScroll) {
+        this.$jsFixedContent.css({
+          position: 'static',
+          top: ''
+        });
+        self.lastScroll = 0;
+      }
+    },
+
+    getContentOffset: function() {
+      return this.$jsFixedContent.offset().top;
+    }
+  };
+
+  $(document).ready(function() {
+    var fixContent = new FixContent();
+    fixContent.run();
+  });
+})(jQuery);
+;(function($) {
+  'use strict';
+
+  /**
+   * Sidebar
+   * @constructor
+   */
+  var HeadProfile = function() {
+    this.$sidebar = $('#sidebar');
+    this.$main = $('#main');
+    this.$blogButton = $('.blog-button-full-screen');
+    this.$headProfile = $('.full-screen-head');
+    this.$cover = $('#cover');
+    this.$firstPageDesc = $('.first-page-desc-container');
+    this.topWhitespace = $('.sidebar-top-whitespace');
+    this.bottomWhitespace = $('.sidebar-bottom-whitespace');
+    this.$sidebarContainer = $('.sidebar-container');
+  };
+
+  HeadProfile.prototype = {
+    /**
+     * Run Sidebar feature
+     * @return {void}
+     */
+    run: function() {
+      var self = this;
+
+      // Detect the click on the open button
+      self.$blogButton.click(function() {
+        if (location.hash && location.hash === "#blog") {
+          return;
+        }
+        self.removeFullScreen();
+      });
+
+      /* first page*/
+      if (window.location.hash === "" && window.location.pathname === "/") {
+        this.$cover.css('z-index', '100');
+        this.$headProfile.removeClass('hidden');
+        this.$firstPageDesc.removeClass('hidden');
+        return;
+      }
+
+      if (window.location.hash && window.location.hash === "#blog") {
+        self.removeFullScreen();
+        return;
+      }
+      if (window.location.hash === "") {
+        self.removeFullScreen();
+      }
+    },
+
+    removeFullScreen: function() {
+      this.changeZIndex();
+      this.removeHiddenClass();
+      this.removeFadeInClass();
+    },
+
+    /**
+     * remove fadeIn for main
+     * @returns {void}
+     */
+    removeFadeInClass: function() {
+      var self = this;
+      if (this.$main.hasClass('fade-in')) {
+        setTimeout(function() {
+          self.$main.removeClass('fade-in');
+        });
+      }
+    },
+
+    /**
+     * set whitespace height
+     * @returns {void}
+     */
+    setWhiteSpace: function() {
+      var topWhitespaceHeight = this.$sidebarContainer.position().top;
+      var bottomWhitespaceHeight = $(window).height() - this.$sidebarContainer.height() -
+        topWhitespaceHeight;
+      this.topWhitespace.css('height', topWhitespaceHeight + 'px');
+      this.bottomWhitespace.css('height', bottomWhitespaceHeight + 'px');
+    },
+
+    /**
+     * remove hidden class for #main, #sidebar
+     * @return {void}
+     */
+    removeHiddenClass: function() {
+      // this.$main.css('display', 'block');
+      if (!this.$firstPageDesc.hasClass('hidden')) {
+        this.$firstPageDesc.addClass('hidden');
+      }
+      if (this.$main.hasClass('hidden')) {
+        this.$main.removeClass('hidden');
+      }
+      if (this.$sidebar.hasClass('hidden')) {
+        this.$sidebar.removeClass('hidden');
+      }
+
+      this.setWhiteSpace();
+    },
+
+    addHideClass: function() {
+      this.$firstPageDesc.addClass('hide');
+      this.$headProfile.addClass('hide');
+    },
+
+    /**
+     *  change cover's z-index from 1050 to -1
+     *  @return {void}
+     */
+    changeZIndex: function() {
+      this.$cover.css('z-index', '-1');
+      this.addHideClass();
+    }
+  };
+
+  $(document).ready(function() {
+    var headProfile = new HeadProfile();
+    headProfile.run();
   });
 })(jQuery);
 ;(function($) {
@@ -560,7 +777,7 @@
     this.headerHeight = this.$header.height();
     // CSS class located in `source/_css/layout/_header.scss`
     this.headerUpCSSClass = 'header-up';
-    this.delta = 15;
+    this.delta = 5;
     this.lastScrollTop = 0;
   };
 
@@ -725,6 +942,45 @@
 ;(function($) {
   'use strict';
 
+  // Open and close the sidebar by swiping the sidebar and the blog and vice versa
+
+  /**
+   * Sidebar
+   * @constructor
+   */
+  var Pagination = function() {
+    this.$pageNav = $('#page-nav');
+    this.$extendPrev = this.$pageNav.find('.extend.prev');
+    this.$extendNext = this.$pageNav.find('.extend.next');
+  };
+
+  Pagination.prototype = {
+    /**
+     * Run Pagination feature
+     * @return {void}
+     */
+    run: function() {
+      var self = this;
+      self.$pageNav.children("*").each(function() {
+        if ($(this).attr('href') === '/') {
+          $(this).attr('href', '/#blog');
+        }
+      });
+
+      this.$extendPrev.addClass('fa fa-lg fa-arrow-circle-left');
+      this.$extendNext.addClass('fa fa-lg fa-arrow-circle-right');
+    }
+
+  };
+
+  $(document).ready(function() {
+    var pagination = new Pagination();
+    pagination.run();
+  });
+})(jQuery);
+;(function($) {
+  'use strict';
+
   // Hide the post bottom bar when the post footer is visible by the user,
   // and show it when the post footer isn't visible by the user
 
@@ -736,10 +992,8 @@
     this.$postBottomBar = $('.post-bottom-bar');
     this.$postFooter = $('.post-actions-wrap');
     this.$header = $('#header');
-    this.delta = 15;
+    this.delta = 1;
     this.lastScrollTop = 0;
-    this.lastScrollDownPos = 0;
-    this.lastScrollUpPos = 0;
   };
 
   PostBottomBar.prototype = {
@@ -773,26 +1027,17 @@
     swipePostBottomBar: function() {
       var scrollTop = $(window).scrollTop();
       var postFooterOffsetTop = this.$postFooter.offset().top;
-
-      // scrolling up
-      if (this.lastScrollTop > scrollTop) {
-        // show bottom bar
-        // if the user scrolled upwards more than `delta`
-        // and `post-footer` div isn't visible
-        if (Math.abs(this.lastScrollDownPos - scrollTop) > this.delta &&
-          (postFooterOffsetTop + this.$postFooter.height() > scrollTop + $(window).height() ||
-            postFooterOffsetTop < scrollTop + this.$header.height())) {
-          this.$postBottomBar.slideDown();
-          this.lastScrollUpPos = scrollTop;
-        }
+      // show bottom bar
+      // if the user scrolled upwards more than `delta`
+      // and `post-footer` div isn't visible
+      if (this.lastScrollTop > scrollTop &&
+        (postFooterOffsetTop + this.$postFooter.height() > scrollTop + $(window).height() ||
+          postFooterOffsetTop < scrollTop + this.$header.height())) {
+        this.$postBottomBar.slideDown();
       }
-
-      // scrolling down
-      if (scrollTop > this.lastScrollUpPos + this.delta) {
+      else {
         this.$postBottomBar.slideUp();
-        this.lastScrollDownPos = scrollTop;
       }
-
       this.lastScrollTop = scrollTop;
     }
   };
@@ -807,29 +1052,102 @@
 ;(function($) {
   'use strict';
 
+  // Hide the post bottom bar when the post footer is visible by the user,
+  // and show it when the post footer isn't visible by the user
+
   /**
-   * Search modal with Algolia
+   * PostBottomThumbnailImg
    * @constructor
    */
-  var SearchModal = function() {
-    this.$openButton = $('.open-algolia-search');
-    this.$searchModal = $('#algolia-search-modal');
-    this.$closeButton = this.$searchModal.find('.close-button');
-    this.$searchForm = $('#algolia-search-form');
-    this.$searchInput = $('#algolia-search-input');
-    this.$results = this.$searchModal.find('.results');
-    this.$noResults = this.$searchModal.find('.no-result');
-    this.$resultsCount = this.$searchModal.find('.results-count');
+  var PostBottomThumbnailImg = function() {
+    this.$postShortenThumbnailimgBottom = $('.postShorten--thumbnailimg-bottom');
+    this.$postBottomThumb = this.$postShortenThumbnailimgBottom.find('.postShorten-thumbnailimg');
+    this.$postBottomImg = this.$postBottomThumb.find('img');
+    this.$sidebar = $('#sidebar');
+  };
+
+  PostBottomThumbnailImg.prototype = {
+
+    /**
+     * Run PostBottomThumbnailImg feature
+     * @return {void}
+     */
+    run: function() {
+      var self = this;
+      setTimeout(function() {
+        // self.resize();
+      }, 100);
+      // resize postShorten--thumbnailimg when window is resized
+      $(window).resize(function() {
+        // self.resize();
+      });
+    },
+
+    resize: function() {
+      var self = this;
+      self.$postBottomImg.each(function() {
+        var windowWidth = $(window).width();
+        var sidebarWidth = self.$sidebar.width();
+
+        if (self.$sidebar.css('left') < 0) {
+          sidebarWidth = 0;
+        }
+        var width = (windowWidth - sidebarWidth) * 2 / 3 * 0.98 / 3;
+        if (width > 200) {
+          width = 200;
+        }
+        self.$postBottomImg.css('height', width);
+      });
+    }
+  };
+
+  $(document).ready(function() {
+    var postBottomThumbnailImg = new PostBottomThumbnailImg();
+    postBottomThumbnailImg.run();
+  });
+})(jQuery);
+;/* eslint-disable brace-style,guard-for-in,no-unused-vars,require-jsdoc,max-len */
+(function($) {
+  'use strict';
+
+  /**
+   * Open search modal
+   * @constructor
+   */
+  var SearchToolsColModal = function() {
+    this.$searchToolsCol = $('.search-tools-col');
+    this.$openButton = $('.open-search-col, .btn-open-search');
+    this.$main = $('#main');
+    this.$canvas = $('#anm-canvas');
+    this.$header = $('#header');
+    this.$closeButton = $('#main, .sidebar-top-whitespace, .sidebar-bottom-whitespace,' +
+      '.post-header, #search-post-title');
+    this.topWhitespace = $('.sidebar-top-whitespace');
+    this.bottomWhitespace = $('.sidebar-bottom-whitespace');
+    this.$searchInput = $('.search-ipt');
+    this.$results = this.$searchToolsCol.find('.search-result');
+    this.$noResults = this.$searchToolsCol.find('.no-result');
+    this.$resultsCount = this.$searchToolsCol.find('.results-count');
+    this.$sidebarContainer = $('.sidebar-container');
+    this.$postHeaderCover = $('.post-header-cover');
+    this.$postBottomBar = $('.post-bottom-bar');
+    this.$sidebar = $('#sidebar');
+    this.$body = $('body');
+    this.$articleTagListItem = $('.article-tag-list-item');
     this.algolia = algoliaIndex;
   };
 
-  SearchModal.prototype = {
+  SearchToolsColModal.prototype = {
     /**
      * Run feature
      * @returns {void}
      */
     run: function() {
       var self = this;
+
+      self.handleSearch();
+
+      self.setWhiteSpace();
 
       // open modal when open button is clicked
       self.$openButton.click(function() {
@@ -845,35 +1163,93 @@
           return;
         }
 
-        if (event.keyCode === 83 && !self.$searchModal.is(':visible')) {
+        if (event.keyCode === 83 && !self.$searchToolsCol.is(':visible')) {
           self.open();
         }
       });
 
-      // close button when overlay is clicked
-      self.$searchModal.click(function(e) {
+      // // close button when overlay is clicked
+      self.$searchToolsCol.click(function(e) {
         if (e.target === this) {
           self.close();
         }
       });
 
       // close modal when close button is clicked
-      self.$closeButton.click(function() {
+      self.$closeButton.click(function(e) {
         self.close();
       });
 
       // close modal when `ESC` button is pressed
       $(document).keyup(function(e) {
-        if (e.keyCode === 27 && self.$searchModal.is(':visible')) {
+        if (e.keyCode === 27 && self.$searchToolsCol.is(':visible')) {
           self.close();
         }
       });
 
-      // send search when form is submitted
-      self.$searchForm.submit(function(event) {
-        event.preventDefault();
-        self.search(self.$searchInput.val());
+      // Detect resize of the windows
+      $(window).resize(function() {
+        self.setWhiteSpace();
       });
+
+      self.setArticleTagListItemClick();
+      self.setSearchPostTags();
+      self.setSearchDate();
+    },
+
+    /**
+     * set whitespace height
+     * @returns {void}
+     */
+    setArticleTagListItemClick: function() {
+      var self = this;
+      self.$articleTagListItem.each(function() {
+        $(this).click(function() {
+          var tagName = $(this).text().trim();
+          self.$searchInput.val(tagName);
+          self.searchWithAloglia(tagName);
+        });
+      });
+    },
+
+    /**
+     * set search post tags click function
+     * @returns {void}
+     */
+    setSearchPostTags: function() {
+      var self = this;
+      self.$results.find('span#search-post-tags').each(function() {
+        $(this).click(function() {
+          var tagName = $(this).text().trim();
+          self.$searchInput.val(tagName);
+          self.$searchInput.focus();
+          self.searchWithAloglia(tagName);
+        });
+      });
+    },
+
+    setSearchDate: function() {
+      var self = this;
+      self.$results.find('span#search-post-date').each(function() {
+        $(this).click(function() {
+          var time = $(this).text().trim();
+          self.$searchInput.val(time);
+          self.$searchInput.focus();
+          self.searchWithAloglia(time);
+        });
+      });
+    },
+
+    /**
+     * set whitespace height
+     * @returns {void}
+     */
+    setWhiteSpace: function() {
+      var topWhitespaceHeight = this.$sidebarContainer.position().top;
+      var bottomWhitespaceHeight = $(window).height() - this.$sidebarContainer.height() -
+        topWhitespaceHeight;
+      this.topWhitespace.css('height', topWhitespaceHeight + 'px');
+      this.bottomWhitespace.css('height', bottomWhitespaceHeight + 'px');
     },
 
     /**
@@ -881,9 +1257,9 @@
      * @returns {void}
      */
     open: function() {
-      this.showSearchModal();
-      this.showOverlay();
-      this.$searchInput.focus();
+      this.showSearchToolsCol();
+      this.ani();
+      this.hideOverFlow();
     },
 
     /**
@@ -891,19 +1267,29 @@
      * @returns {void}
      */
     close: function() {
-      this.hideSearchModal();
-      this.hideOverlay();
-      this.$searchInput.blur();
+      this.hideSearchToolsCol();
+      this.recoverMainCol();
+      this.recoverHeader();
+      this.recoverPostHeaderCover();
+      this.recoverPostBottomBar();
+      this.showOverflow();
     },
 
     /**
-     * Search with Algolia API and display results
-     * @param {String} search
+     * handle search and display results
      * @returns {void}
      */
-    search: function(search) {
+    handleSearch: function() {
       var self = this;
-      this.algolia.search(search, function(err, content) {
+      self.$searchInput.on('input propertychange', function() {
+        var val = $(this).val();
+        self.searchWithAloglia(val);
+      });
+    },
+
+    searchWithAloglia: function(val) {
+      var self = this;
+      this.algolia.search(val, function(err, content) {
         if (!err) {
           self.showResults(content.hits);
           self.showResultsCount(content.nbHits);
@@ -919,51 +1305,30 @@
     showResults: function(posts) {
       var html = '';
       posts.forEach(function(post) {
-        var lang = window.navigator.userLanguage || window.navigator.language || post.lang;
-
         html += '<div class="media">';
-        if (post.thumbnailImageUrl) {
-          html += '<div class="media-left">';
-          html += '<a class="link-unstyled" href="' + (post.link || post.permalink) + '">';
-          html += '<img class="media-image" ' +
-            'src="' + post.thumbnailImageUrl + '" ' +
-            'width="90" height="90"/>';
-          html += '</a>';
-          html += '</div>';
-        }
-
-        html += '<div class="media-body">';
-        html += '<a class="link-unstyled" href="' + (post.link || post.permalink) + '">';
-        html += '<h3 class="media-heading">' + post.title + '</h3>';
+        html += '<a class="search-title" href="' + post.path + '">';
+        html += '<i class="fa fa-quote-left"></i>';
+        html += '<span id="search-post-title">' + post.title + '</span>';
         html += '</a>';
-        html += '<span class="media-meta">';
-        html += '<span class="media-date text-small">';
-        html += moment(post.date).locale(lang).format('ll');
-        html += '</span>';
-        html += '</span>';
-        html += '<div class="media-content hide-xs font-merryweather">' + post.excerpt + '</div>';
-        html += '</div>';
-        html += '<div style="clear:both;"></div>';
-        html += '<hr>';
+        html += '<p class="search-time">';
+        html += '<i class="fa fa-calendar"></i>';
+        html += '<span id="search-post-date">' + post.date.substr(0, 10) + '</span>';
+        html += '</p>';
+        html += '<p class="search-result-meta">';
+        html += '<i class="fa fa-tags"></i>';
+        post.tags.forEach(function(tag) {
+          html += '<span id="search-post-tags">';
+          html += '#' + tag + ' ';
+          html += '</span>';
+        });
+
+        html += '</p>';
+        html += '<div class="clearfix"></div>';
         html += '</div>';
       });
       this.$results.html(html);
-    },
-
-    /**
-     * Show search modal
-     * @returns {void}
-     */
-    showSearchModal: function() {
-      this.$searchModal.fadeIn();
-    },
-
-    /**
-     * Hide search modal
-     * @returns {void}
-     */
-    hideSearchModal: function() {
-      this.$searchModal.fadeOut();
+      this.setSearchPostTags();
+      this.setSearchDate();
     },
 
     /**
@@ -986,43 +1351,303 @@
         this.$noResults.hide();
       }
       this.$resultsCount.html(string);
+      if (this.$resultsCount.hasClass('hide')) {
+        this.$resultsCount.removeClass('hide');
+      }
+    },
+
+    removeHideClass: function() {
+      if (this.$searchToolsCol.hasClass('hide')) {
+        this.$searchToolsCol.removeClass('hide');
+        this.$searchToolsCol.addClass('show');
+      }
+      if (this.$canvas.hasClass('hidden')) {
+        this.$canvas.removeClass('hidden');
+      }
     },
 
     /**
-     * Show overlay
+     * Show search modal
      * @returns {void}
      */
-    showOverlay: function() {
-      $('body').append('<div class="overlay"></div>');
-      $('.overlay').fadeIn();
+    showSearchToolsCol: function() {
+      this.removeHideClass();
+      this.thinMainCol();
+      this.thinHeader();
+      this.thinPostHeaderCover();
+      this.thinBottomBar();
+      this.$body.css('overflow-x', 'hidden');
+    },
+
+    /**
+     * thin post bottom bar
+     * @returns {void}
+     */
+    thinBottomBar: function() {
+      this.$postBottomBar.addClass('show');
+    },
+
+    /**
+     * thin post header cover
+     * @returns {void}
+     */
+    thinPostHeaderCover: function() {
+      this.$postHeaderCover.addClass('show');
+      this.$postHeaderCover.removeClass('fade-in');
+    },
+
+    /**
+     * thin post header cover
+     * @returns {void}
+     */
+    recoverPostHeaderCover: function() {
+      var self = this;
+      if (this.$postHeaderCover.hasClass('show')) {
+        this.$postHeaderCover.removeClass('show');
+        this.$postHeaderCover.addClass('recover');
+      }
+      setTimeout(function() {
+        self.$postHeaderCover.removeClass('recover');
+      }, 1000);
+    },
+
+    /**
+     * Hide search modal
+     * @returns {void}
+     */
+    hideSearchToolsCol: function() {
+      var self = this;
+      if (this.$searchToolsCol.hasClass('show')) {
+        this.$searchToolsCol.removeClass('show');
+        this.$searchToolsCol.addClass('recover');
+        setTimeout(function() {
+          self.$searchToolsCol.removeClass('recover');
+          self.$searchToolsCol.addClass('hide');
+        }, 500);
+      }
+      if (!this.$canvas.hasClass('hidden')) {
+        this.$canvas.addClass('hidden');
+      }
+    },
+
+    /**
+     * thin main col for search
+     * @returns {void}
+     */
+    thinMainCol: function() {
+      if (this.$main.hasClass('hide')) {
+        this.$main.removeClass('hide');
+      }
+      if (!this.$main.hasClass('show')) {
+        this.$main.addClass('show');
+      }
+    },
+
+    /**
+     * recover main col for search
+     * @returns {void}
+     */
+    recoverMainCol: function() {
+      var self = this;
+      if (this.$main.hasClass('show')) {
+        this.$main.removeClass('show');
+        this.$main.addClass('recover');
+      }
+      setTimeout(function() {
+        self.$main.removeClass('recover');
+      }, 1000);
+    },
+
+    /**
+     * thin header for search
+     * @returns {void}
+     */
+    thinHeader: function() {
+      if (!this.$header.hasClass('show')) {
+        this.$header.addClass('show');
+        this.$header.removeClass('fade-in');
+      }
+    },
+
+    /**
+     * recover header for search
+     * @returns {void}
+     */
+    recoverHeader: function() {
+      if (this.$header.hasClass('show')) {
+        var self = this;
+        this.$header.removeClass('show');
+        this.$header.addClass('recover');
+        setTimeout(function() {
+          self.$header.removeClass('recover');
+        }, 1000);
+      }
+    },
+
+    /**
+     * recover header for search
+     * @returns {void}
+     */
+    recoverPostBottomBar: function() {
+      if (this.$postBottomBar.hasClass('show')) {
+        var self = this;
+        this.$postBottomBar.removeClass('show');
+        this.$postBottomBar.addClass('recover');
+        setTimeout(function() {
+          self.$postBottomBar.removeClass('recover');
+        }, 1000);
+      }
+    },
+
+    /**
+     * show over flow
+     * @returns {void}
+     */
+    hideOverFlow: function() {
       $('body').css('overflow', 'hidden');
     },
 
     /**
-     * Hide overlay
+     * show over flow
      * @returns {void}
      */
-    hideOverlay: function() {
-      $('.overlay').fadeOut(function() {
-        $(this).remove();
-        $('body').css('overflow', 'auto');
-      });
+    showOverflow: function() {
+      var self = this;
+      setTimeout(function() {
+        if (self.$sidebar.hasClass('pushed')) {
+          $('body').css({'overflow-x': 'hidden', 'overflow-y': 'auto'});
+        } else {
+          $('body').css('overflow', 'auto');
+        }
+      }, 1000);
+    },
+
+    /**
+     * animation for search modal
+     * @returns {void}
+     */
+    ani: function() {
+      var self = this;
+      var width;
+      var height;
+      var largeHeader;
+      var canvas;
+      var ctx;
+      var circles;
+      var target;
+      var animateHeader = true;
+      var sidebarWidth;
+
+      // Main
+      initHeader();
+      addListeners();
+
+      // initial for animation
+      function initHeader() {
+        target = {x: 0, y: height};
+
+        drawCanvas();
+        ctx = canvas.getContext('2d');
+        createCircles();
+        animate();
+      }
+
+      function createCircles() {
+        // create particles
+        circles = [];
+        for (var x = 0; x < width * 0.5; x++) {
+          var c = new Circle();
+          circles.push(c);
+        }
+      }
+
+      // Event handling
+      function addListeners() {
+        window.addEventListener('scroll', scrollCheck);
+        window.addEventListener('resize', resize);
+      }
+
+      function drawCanvas() {
+        largeHeader = document.getElementById('container');
+        canvas = document.getElementById('anm-canvas');
+
+        sidebarWidth = $('#sidebar').width();
+        width = window.innerWidth;
+        height = window.innerHeight;
+
+        largeHeader.style.height = height + 'px';
+
+        canvas.height = height;
+        canvas.width = width;
+      }
+
+      function scrollCheck() {
+        if (document.body.scrollTop > height) {
+          animateHeader = false;
+        }
+        else {
+          animateHeader = true;
+        }
+      }
+
+      function resize() {
+        drawCanvas();
+      }
+
+      function animate() {
+        if (animateHeader) {
+          ctx.clearRect(0, 0, width, height);
+          for (var i in circles) {
+            circles[i].draw();
+          }
+        }
+        requestAnimationFrame(animate);
+      }
+
+      // Canvas manipulation
+      function Circle() {
+        var _this = this;
+
+        // constructor
+        (function() {
+          _this.pos = {};
+          init();
+          // console.log(_this);
+        })();
+
+        function init() {
+          _this.pos.x = Math.random() * width;
+          _this.pos.y = height + Math.random() * 100;
+          _this.alpha = 0.1 + Math.random() * 0.3;
+          _this.scale = 0.1 + Math.random() * 0.3;
+          _this.velocity = Math.random();
+        }
+
+        this.draw = function() {
+          if (_this.alpha <= 0) {
+            init();
+          }
+          _this.pos.y -= _this.velocity;
+          _this.alpha -= 0.0005;
+          ctx.beginPath();
+          ctx.arc(_this.pos.x, _this.pos.y, _this.scale * 10, 0, 2 * Math.PI, false);
+          ctx.fillStyle = 'rgba(255,255,255,' + _this.alpha + ')';
+          ctx.fill();
+        };
+      }
     }
   };
 
   $(document).ready(function() {
-    // launch feature only if there is an Algolia index available
-    if (typeof algoliaIndex !== 'undefined') {
-      var searchModal = new SearchModal();
-      searchModal.run();
-    }
+    var searchToolsColModal = new SearchToolsColModal();
+    searchToolsColModal.run();
   });
 })(jQuery);
 ;(function($) {
   'use strict';
-  
+
   // Open and close the share options bar
-  
+
   /**
    * ShareOptionsBar
    * @constructor
@@ -1033,16 +1658,16 @@
     this.$closeBtn = $('#btn-close-shareoptions');
     this.$body = $('body');
   };
-  
+
   ShareOptionsBar.prototype = {
-    
+
     /**
      * Run ShareOptionsBar feature
      * @return {void}
      */
     run: function() {
       var self = this;
-      
+
       // Detect the click on the open button
       self.$openBtn.click(function() {
         if (!self.$shareOptionsBar.hasClass('opened')) {
@@ -1050,7 +1675,7 @@
           self.$closeBtn.show();
         }
       });
-      
+
       // Detect the click on the close button
       self.$closeBtn.click(function() {
         if (self.$shareOptionsBar.hasClass('opened')) {
@@ -1059,14 +1684,14 @@
         }
       });
     },
-    
+
     /**
      * Open share options bar
      * @return {void}
      */
     openShareOptions: function() {
       var self = this;
-      
+
       // Check if the share option bar isn't opened
       // and prevent multiple click on the open button with `.processing` class
       if (!self.$shareOptionsBar.hasClass('opened') &&
@@ -1074,27 +1699,27 @@
         // Open the share option bar
         self.$shareOptionsBar.addClass('processing opened');
         self.$body.css('overflow', 'hidden');
-        
+
         setTimeout(function() {
           self.$shareOptionsBar.removeClass('processing');
         }, 250);
       }
     },
-    
+
     /**
      * Close share options bar
      * @return {void}
      */
     closeShareOptions: function() {
       var self = this;
-      
+
       // Check if the share options bar is opened
       // and prevent multiple click on the close button with `.processing` class
       if (self.$shareOptionsBar.hasClass('opened') &&
         !this.$shareOptionsBar.hasClass('processing')) {
         // Close the share option bar
         self.$shareOptionsBar.addClass('processing').removeClass('opened');
-        
+
         setTimeout(function() {
           self.$shareOptionsBar.removeClass('processing');
           self.$body.css('overflow', '');
@@ -1102,7 +1727,7 @@
       }
     }
   };
-  
+
   $(document).ready(function() {
     var shareOptionsBar = new ShareOptionsBar();
     shareOptionsBar.run();
@@ -1120,8 +1745,9 @@
   var Sidebar = function() {
     this.$sidebar = $('#sidebar');
     this.$openBtn = $('#btn-open-sidebar');
+    this.$searchToolsCol = $('.search-tools-col');
     // Elements where the user can click to close the sidebar
-    this.$closeBtn = $('#header, #main, .post-header-cover');
+    this.$closeBtn = $('#main, .post-header-cover');
     // Elements affected by the swipe of the sidebar
     // The `pushed` class is added to each elements
     // Each element has a different behavior when the sidebar is opened
@@ -1130,6 +1756,9 @@
     // you have to change value of `$screen-min: (md-min)` too
     // in `source/_css/utils/variables.scss`
     this.$body = $('body');
+    this.$main = $('#main');
+    this.$canvas = $('.anm-canvas');
+    this.$headProfile = $('.full-screen-head');
     this.mediumScreenWidth = 768;
   };
 
@@ -1143,6 +1772,7 @@
       // Detect the click on the open button
       this.$openBtn.click(function() {
         if (!self.$sidebar.hasClass('pushed')) {
+          // hide the picture in full screen
           self.openSidebar();
         }
       });
@@ -1162,6 +1792,7 @@
         else {
           self.closeSidebar();
         }
+        self.resetSearchToolsCol();
       });
     },
 
@@ -1170,8 +1801,29 @@
      * @return {void}
      */
     openSidebar: function() {
+      this.removeMainHideClass();
       this.swipeBlogToRight();
       this.swipeSidebarToRight();
+      this.pushSearchToolsCol();
+      this.pushAniCanvas();
+    },
+
+    /**
+     * push ani-canvas
+     * @returns {void}
+     */
+    pushAniCanvas: function() {
+      if (!this.$searchToolsCol.hasClass('hidden')) {
+        this.$canvas.addClass('pushed');
+      }
+    },
+
+    /**
+     * remove hide class for main
+     * @return {void}
+     */
+    removeMainHideClass: function() {
+      this.$main.removeClass('hide');
     },
 
     /**
@@ -1179,8 +1831,20 @@
      * @return {void}
      */
     closeSidebar: function() {
-      this.swipeSidebarToLeft();
-      this.swipeBlogToLeft();
+      if (this.$searchToolsCol.hasClass('hide')) {
+        this.swipeSidebarToLeft();
+        this.swipeBlogToLeft();
+        this.removeCanvasPushed();
+        this.resetSearchToolsCol();
+      }
+    },
+
+    /**
+     * remove class 'pushed' for canvas
+     * @returns {void}
+     */
+    removeCanvasPushed: function() {
+      this.$canvas.removeClass('pushed');
     },
 
     /**
@@ -1199,6 +1863,15 @@
       this.$blog.removeClass('pushed');
     },
 
+    /**
+     * Reset search tools col position
+     * @return {void}
+     */
+    resetSearchToolsCol: function() {
+      if (this.$searchToolsCol.hasClass('pushed')) {
+        this.$searchToolsCol.removeClass('pushed');
+      }
+    },
     /**
      * Swipe the sidebar to the right
      * @return {void}
@@ -1219,6 +1892,16 @@
     },
 
     /**
+     * push the search tools col when sidebar pushed
+     * @return {void}
+     */
+    pushSearchToolsCol: function() {
+      if (!this.$searchToolsCol.hasClass('pushed')) {
+        this.$searchToolsCol.addClass('pushed');
+      }
+    },
+
+    /**
      * Swipe the sidebar to the left
      * @return {void}
      */
@@ -1227,9 +1910,12 @@
       // and prevent multiple click on the close button with `.processing` class
       if (this.$sidebar.hasClass('pushed') && !this.$sidebar.hasClass('processing')) {
         // Swipe the sidebar to the left
+        var self = this;
         this.$sidebar.addClass('processing').removeClass('pushed processing');
         // go back to the default overflow
-        this.$body.css('overflow-x', 'auto');
+        setTimeout(function() {
+          self.$body.css('overflow-x', 'auto');
+        }, 250);
       }
     },
 
@@ -1319,7 +2005,7 @@
    * @constructor
    */
   var TabbedCodeBlock = function(elems) {
-    this.$tabbedCodeBlocs = $(elems);
+    this.$jsFixedContent = $(elems);
   };
 
   TabbedCodeBlock.prototype = {
@@ -1329,7 +2015,7 @@
      */
     run: function() {
       var self = this;
-      self.$tabbedCodeBlocs.find('.tab').click(function() {
+      self.$jsFixedContent.find('.tab').click(function() {
         var $codeblock = $(this).parent().parent().parent();
         var $tabsContent = $codeblock.find('.tabs-content').children('pre, .highlight');
         // remove `active` css class on all tabs
@@ -1347,6 +2033,80 @@
   $(document).ready(function() {
     var tabbedCodeBlocks = new TabbedCodeBlock('.codeblock--tabbed');
     tabbedCodeBlocks.run();
+  });
+})(jQuery);
+;/* eslint-disable brace-style,max-len */
+(function($) {
+  'use strict';
+
+  /**
+   * TableContent
+   * @constructor
+   */
+  var TableContent = function() {
+    this.$postContent = $('.post-content');
+    this.post = $('.post');
+    this.$ulToc = this.$postContent.find('ul.toc');
+    this.$tableTile = this.post.find('.tableTile');
+    this.$tableContent = this.$postContent.find('.tableContent');
+    this.$contentWrap = this.$postContent.find('.toc.main-content-wrap');
+    this.tocMessage = this.$tableTile.data('message');
+  };
+
+  TableContent.prototype = {
+    /**
+     * Run toc feature
+     * @return {void}
+     */
+    run: function() {
+      var tocContent = '';
+      var title = '<li>' + this.tocMessage + '</li>';
+      var icon = '<i class="fa fa-chevron-right">';
+      var selfOut = this;
+      this.$tableTile.detach();
+      this.$ulToc.detach();
+      this.$ulToc.find('ul').each(function() {
+        var liBlock = $(this).parent('li');
+        $(liBlock).prepend(icon);
+        if ($(liBlock).css('padding-left') !== '20px') {
+          $(liBlock).css('padding-left', '20px');
+        }
+        var selfIn = this;
+        var count = 0;
+        selfOut.toggleContent(this, 20);
+        $(liBlock).find('.fa').click(function() {
+          selfOut.toggleContent(selfIn, 250);
+          if (count % 2 === 0) {
+            $(liBlock).find('i').removeClass('fa-chevron-right').addClass('fa-chevron-down');
+            count++;
+          } else {
+            $(liBlock).find('i').removeClass('fa-chevron-down').addClass('fa-chevron-right');
+            count = 0;
+          }
+        });
+      });
+
+      this.$ulToc.prepend(title);
+      if (this.$tableContent.length) {
+        tocContent = this.$ulToc[0];
+        this.$ulToc.detach();
+        this.$tableContent.prepend(tocContent);
+        this.$tableContent.insertBefore(this.$contentWrap);
+      } else {
+        this.$ulToc.removeClass('js-fixedContent');
+        tocContent = this.$ulToc[0];
+        this.$contentWrap.prepend(tocContent);
+      }
+    },
+
+    toggleContent: function(element, time) {
+      $(element).slideToggle(time);
+    }
+  };
+
+  $(document).ready(function() {
+    var toc = new TableContent();
+    toc.run();
   });
 })(jQuery);
 ;(function($) {
